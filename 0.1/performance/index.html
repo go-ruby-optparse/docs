@@ -404,9 +404,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-best-of-5-ms" class="md-nav__link">
+  <a href="#results-nsop-best-of-25" class="md-nav__link">
     <span class="md-ellipsis">
-      Result (best of 5, ms)
+      Results (ns/op, best of 25)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-go-vs-yjit-verdict-per-op" class="md-nav__link">
+    <span class="md-ellipsis">
+      The go-vs-YJIT verdict, per op
     </span>
   </a>
   
@@ -476,9 +485,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-best-of-5-ms" class="md-nav__link">
+  <a href="#results-nsop-best-of-25" class="md-nav__link">
     <span class="md-ellipsis">
-      Result (best of 5, ms)
+      Results (ns/op, best of 25)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-go-vs-yjit-verdict-per-op" class="md-nav__link">
+    <span class="md-ellipsis">
+      The go-vs-YJIT verdict, per op
     </span>
   </a>
   
@@ -500,74 +518,133 @@
 
 
 <h1 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h1>
-<p><code>go-ruby-optparse/optparse</code> is the pure-Go library that
-<a href="https://github.com/go-embedded-ruby/ruby"><code>rbgo</code></a> binds for Ruby's <code>optparse</code>. This
-page records a <strong>comparative benchmark</strong> of that module against the reference
-Ruby runtimes, part of the ecosystem-wide per-module parity suite.</p>
+<p><code>go-ruby-optparse/optparse</code> is the pure-Go, CGO-free library that
+<a href="https://github.com/go-embedded-ruby/ruby"><code>rbgo</code></a> binds for Ruby's <code>optparse</code>.
+This page records a <strong>real, library-level</strong> benchmark of that module's Go API
+against every reference runtime's own <code>optparse</code> stdlib, one row per
+<code>OptionParser</code> operation. It is part of the ecosystem-wide per-module parity
+suite, and <strong>the bar is beating MRI + YJIT</strong>, not just plain MRI.</p>
 <h2 id="what-is-measured">What is measured<a class="headerlink" href="#what-is-measured" title="Permanent link">&para;</a></h2>
-<p>The <strong>same</strong> Ruby script — build an <code>OptionParser</code> and parse an argv (construction-heavy), per iteration — is run under every runtime. <code>rbgo</code>'s
-number reflects <strong>this pure-Go library doing the work</strong>; every other column is
-that interpreter's own <code>optparse</code> stdlib. So the comparison is the <strong>Ruby-visible
-operation</strong>, apples-to-apples across interpreters. The script prints a
-deterministic checksum and its output is checked <strong>byte-identical to MRI</strong>
-before timing.</p>
-<ul>
-<li><strong>Host:</strong> Apple M4 Max, macOS (darwin/arm64). <strong>Method:</strong> best-of-5 wall time
-  (best, not mean, to suppress scheduler noise); single-shot processes, no
-  warm-up beyond the script's own loop.</li>
-<li><strong>Runtimes:</strong> <code>ruby 4.0.5 +PRISM</code> (MRI, the oracle) and <code>ruby --yjit</code>;
-  <code>jruby 10.1.0.0</code> (OpenJDK 25); <code>truffleruby 34.0.1</code> (GraalVM CE Native).</li>
-<li>The benchmark script and harness live in rbgo's repo under
-  <a href="https://github.com/go-embedded-ruby/ruby/tree/main/bench/modules"><code>bench/modules/</code></a>
-  (<code>optparse.rb</code> + <code>run.sh</code>). Reproduce:
-  <code>RBGO=./rbgo TRUFFLE=truffleruby bash bench/modules/run.sh 5</code>.</li>
-</ul>
-<h2 id="result-best-of-5-ms">Result (best of 5, ms)<a class="headerlink" href="#result-best-of-5-ms" title="Permanent link">&para;</a></h2>
+<p>Three representative <code>OptionParser</code> operations over one <strong>fixed, representative
+command line</strong> — eight registered options (short/long flags, <code>--opt VALUE</code> and
+<code>--opt=VALUE</code> forms, <code>Integer</code> and <code>Float</code> coercion, a <code>--[no-]color</code> negatable
+flag) and a twelve-token argv with two interleaved operands:</p>
 <table>
 <thead>
 <tr>
-<th>Runtime</th>
-<th style="text-align: right;">time</th>
-<th style="text-align: right;">vs MRI</th>
+<th>Op</th>
+<th>What it exercises</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>rbgo</strong> (go-ruby-optparse)</td>
-<td style="text-align: right;">140</td>
-<td style="text-align: right;">0.18×</td>
+<td><code>build</code></td>
+<td>construct an <code>OptionParser</code> and register all eight options (the construction-heavy path that dominates real optparse programs)</td>
 </tr>
 <tr>
-<td>MRI (ruby 4.0.5)</td>
-<td style="text-align: right;">790</td>
-<td style="text-align: right;">1.00×</td>
+<td><code>parse</code></td>
+<td><code>parse!</code> the representative argv against a parser built once, isolating the argv-parsing engine (flags, separated/attached values, coercion, negation, permuted operands)</td>
 </tr>
 <tr>
-<td>MRI + YJIT</td>
-<td style="text-align: right;">630</td>
-<td style="text-align: right;">0.80×</td>
-</tr>
-<tr>
-<td>JRuby 10.1.0.0</td>
-<td style="text-align: right;">2650</td>
-<td style="text-align: right;">3.35×</td>
-</tr>
-<tr>
-<td>TruffleRuby 34.0.1</td>
-<td style="text-align: right;">1350</td>
-<td style="text-align: right;">1.71×</td>
+<td><code>build-parse</code></td>
+<td>the full lifecycle a real program runs each launch: build the parser, then <code>parse!</code></td>
 </tr>
 </tbody>
 </table>
-<p>rbgo runs on <strong>go-ruby-optparse</strong> and is <strong>~5x faster than MRI</strong> here (0.18x). MRI's optparse is largely Ruby-coded, so the compiled pure-Go parser construction wins decisively.</p>
+<p>The <strong>go-ruby</strong> column drives this pure-Go library through its Go API; every
+other column is that interpreter's own stdlib <code>optparse</code> (a pure-Ruby library).
+The Go and Ruby drivers build the <strong>identical</strong> argv, register the <strong>identical</strong>
+options in the same order, and before any timing each op's integer checksum is
+verified <strong>byte-identical to MRI</strong> — all five runtimes agree on every op
+(<code>build</code>=8, <code>parse</code>=79102786953647896, <code>build-parse</code>=79102786961647920). So the
+comparison is the same observable operation, apples-to-apples.</p>
+<ul>
+<li><strong>Host:</strong> Apple M4 Max, macOS (<code>arm64-darwin</code>). <strong>Date:</strong> 2026-07-03.</li>
+<li><strong>Runtimes:</strong> Go 1.26.4; <code>ruby 4.0.5 +PRISM</code> (MRI, the oracle) and
+  <code>ruby --yjit</code>; <code>jruby 10.1.0.0</code> (OpenJDK 25); <code>truffleruby 34.0.1</code>
+  (GraalVM CE Native).</li>
+<li><strong>Method:</strong> each process runs 3 untimed warm-up passes then 25 timed passes of
+  a fixed inner loop, timed with a monotonic clock; the <strong>best</strong> pass is reported
+  as <strong>ns/op</strong>. Interpreter start-up is outside the timed region, so the number
+  is the operation's own cost, not <code>ruby file.rb</code> process cost. Numbers were
+  stable to within a few percent across repeated runs.</li>
+<li>Harness and drivers live in this repo under
+  <a href="https://github.com/go-ruby-optparse/docs/tree/main/benchmarks"><code>benchmarks/</code></a>
+  (<code>go/</code>, <code>ruby/optparse.rb</code>, <code>run.sh</code>). Reproduce: <code>bash benchmarks/run.sh</code>.</li>
+</ul>
+<h2 id="results-nsop-best-of-25">Results (ns/op, best of 25)<a class="headerlink" href="#results-nsop-best-of-25" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Op</th>
+<th style="text-align: right;">go-ruby (pure Go)</th>
+<th style="text-align: right;">MRI</th>
+<th style="text-align: right;">MRI + YJIT</th>
+<th style="text-align: right;">JRuby</th>
+<th style="text-align: right;">TruffleRuby</th>
+<th style="text-align: right;"><strong>go vs YJIT</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>parse</code></td>
+<td style="text-align: right;"><strong>852</strong></td>
+<td style="text-align: right;">14 600</td>
+<td style="text-align: right;">10 424</td>
+<td style="text-align: right;">14 910</td>
+<td style="text-align: right;">19 927</td>
+<td style="text-align: right;"><strong>12.2× faster</strong> ✅</td>
+</tr>
+<tr>
+<td><code>build-parse</code></td>
+<td style="text-align: right;"><strong>7 063</strong></td>
+<td style="text-align: right;">81 258</td>
+<td style="text-align: right;">59 802</td>
+<td style="text-align: right;">77 091</td>
+<td style="text-align: right;">44 637</td>
+<td style="text-align: right;"><strong>8.5× faster</strong> ✅</td>
+</tr>
+<tr>
+<td><code>build</code></td>
+<td style="text-align: right;"><strong>5 878</strong></td>
+<td style="text-align: right;">61 644</td>
+<td style="text-align: right;">48 690</td>
+<td style="text-align: right;">60 310</td>
+<td style="text-align: right;">42 113</td>
+<td style="text-align: right;"><strong>8.3× faster</strong> ✅</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-go-vs-yjit-verdict-per-op">The go-vs-YJIT verdict, per op<a class="headerlink" href="#the-go-vs-yjit-verdict-per-op" title="Permanent link">&para;</a></h2>
+<p><strong>Every operation beats MRI + YJIT, decisively:</strong></p>
+<ul>
+<li><strong><code>parse</code> — 12.2× faster than YJIT</strong> (852 ns vs 10 424 ns). Pure argv walking:
+  the Go parser is a handful of map lookups, slice reslices, and a <code>strconv</code>
+  coercion per token, with no interpreter dispatch at all.</li>
+<li><strong><code>build-parse</code> — 8.5× faster than YJIT</strong> (7 063 ns vs 59 802 ns) — the whole
+  real-world lifecycle (construct + parse) in one number.</li>
+<li><strong><code>build</code> — 8.3× faster than YJIT</strong> (5 878 ns vs 48 690 ns). Registering eight
+  options compiles to plain struct/map appends in Go; MRI's <code>optparse</code> builds a
+  <code>Switch</code> object graph and runs regexp-driven flag parsing in Ruby for every
+  <code>on(...)</code>, which is where its construction cost goes.</li>
+</ul>
+<p>Net: <strong>all 3 operations beat MRI + YJIT</strong> (8.3×–12.2×), and MRI + YJIT is itself
+the fastest of the four Ruby runtimes on the construction-bound ops. Ruby's
+<code>optparse</code> is pure Ruby — not a C extension — so there is no hand-written C to
+catch up to here; the compiled pure-Go implementation wins across the board while
+producing byte-identical results.</p>
 <div class="admonition note">
-<p class="admonition-title">Honest framing</p>
-<p>JRuby and TruffleRuby are timed <strong>cold, single-shot</strong>, so they carry JVM /
-Graal startup on every run — read them as one-shot <code>ruby file.rb</code> costs, the
-same way <code>rbgo</code> and MRI are measured, not as steady-state JIT numbers. Rows
-that complete in well under ~200 ms carry the most relative noise; treat
-their ratios as order-of-magnitude. These are real measured numbers from the
-2026-06-29 run — nothing is cherry-picked.</p>
+<p class="admonition-title">Cold-JIT caveat</p>
+<p>JRuby and TruffleRuby are measured <strong>in-process after 3 warm-up passes</strong>, but
+3 passes is not full JIT steady state for the JVM / GraalVM — their columns
+still carry cold-to-warming-JIT cost and should be read as
+order-of-magnitude, not as fully-warmed peak throughput. TruffleRuby's
+relatively strong <code>build-parse</code> reflects aggressive Graal specialization of
+that loop, yet it is still 6.3× slower than the pure-Go library. The
+<strong>go-vs-MRI and go-vs-YJIT comparisons are the load-bearing ones</strong> — MRI and
+YJIT reach steady state within the warm-up, and both they and the Go driver
+are timed identically. All numbers are real, single-host measurements from
+the 2026-07-03 run; nothing is cherry-picked.</p>
 </div>
 
 
