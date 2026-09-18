@@ -2,3 +2,5 @@ github.com/go-ruby-optparse/optparse v0.0.0-20260629093110-6b69a6b03546 h1:A4xMr
 github.com/go-ruby-optparse/optparse v0.0.0-20260629093110-6b69a6b03546/go.mod h1:BxhqkQFCqSMeYeWOHt7sdxTSkbaSJF19dWzspICZL1Q=
 github.com/go-ruby-optparse/optparse v0.0.0-20260717071632-da8194087eaf h1:48jiVvMG5OM0DhXLnKEzUtUulPELtx+QASI8KUt5gaQ=
 github.com/go-ruby-optparse/optparse v0.0.0-20260717071632-da8194087eaf/go.mod h1:BxhqkQFCqSMeYeWOHt7sdxTSkbaSJF19dWzspICZL1Q=
+github.com/go-ruby-optparse/optparse v0.0.0-20260917100925-33b18da76c37 h1:SZ2alHm5/WzH6f8ChbnUE2JrzmBOx402mQHuk7BhadY=
+github.com/go-ruby-optparse/optparse v0.0.0-20260917100925-33b18da76c37/go.mod h1:BxhqkQFCqSMeYeWOHt7sdxTSkbaSJF19dWzspICZL1Q=
