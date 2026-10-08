@@ -1,5 +1,5 @@
 module bench
 
-go 1.26.4
+go 1.27.1
 
-require github.com/go-ruby-optparse/optparse v0.0.0-20260917100925-33b18da76c37
+require github.com/go-ruby-optparse/optparse v0.0.0-20261007112916-8e7f9413b136
